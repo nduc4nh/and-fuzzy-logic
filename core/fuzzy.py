@@ -1,5 +1,5 @@
-from components import FuzzySet, Linguistic
-from fuzzy_operation import Operation
+from .components import FuzzySet, Linguistic
+from .fuzzy_operation import Operation
 
 #Variabe -> Domains, Linguistic -> Entity -> Fuzzyfication -> FuzzySet -> DecisionMaking -> FuzzySet -> Defuzzification
 
@@ -30,26 +30,27 @@ class Fuzzification:
         """
         re = []
         for lng in variable.lng:
-            re.append((lng, variable.membership_function[lng](domain.value)))
+            re.append((lng, variable.shape[lng].get_fuzzy_value(domain.value)))
         return re
 
     def _make_set(self, discrete_fuzzy):
         """
         Aggregate permutation of linguistic values among variables
         """
-        vars_name = list(discrete_fuzzy.keys())
-        n = len(discrete_fuzzy) - 1
+        vars_name = list(discrete_fuzzy.keys()) #order
+        n = len(discrete_fuzzy)
 
         def Try(i, tmp):
             if i == n:
                 yield tmp
+                return
             variable = self._get_variable(vars_name[i])
             for lng in variable.lng:
                 tmp.append(lng)
                 yield from Try(i+1, tmp[:])
                 tmp.pop(-1)
 
-        lng_sets = Try(0, [])
+        lng_sets = list(Try(0, []))
         fuzzy_sets = []
         for lng_set in lng_sets:
             lngs = [Linguistic(e,
@@ -57,15 +58,20 @@ class Fuzzification:
                                self._get_variable(vars_name[i]))
                     for i, e in enumerate(lng_set)]
             fuzzy_sets.append(FuzzySet(lngs))
-
+        
+        # for fuzzy_set in fuzzy_sets:
+        #     print(fuzzy_set.__str__())
         return fuzzy_sets
 
     def act(self, entity) -> FuzzySet:
         discrete_fuzzy = {}
         for domain in entity.domains:
             variable = self._get_variable(domain.name)
-            discrete_fuzzy[domain.name] = self._compute_fuzzy(variable, domain)
-
+            discrete_fuzzy[domain.name] = {}
+            lngs_with_value = self._compute_fuzzy(variable, domain)
+            for lng,value in lngs_with_value:
+                discrete_fuzzy[domain.name][lng]=value
+        
         return self._make_set(discrete_fuzzy)
 
 
@@ -90,21 +96,24 @@ class DecisionMaking:
         return out_lngs
 
     def _shrink(self, fuzzy_set):
-        lng_names = list(set([lng.name for lng in fuzzy_set.lngs]))
+        lng_names = list(set([lng.name for lng in fuzzy_set]))
+        
         re = []
         for lng_name in lng_names:
-            re.append([lng for lng in fuzzy_set.lngs if lng.name == lng_name])
+            re.append(self.op.union_many([lng for lng in fuzzy_set if lng.name == lng_name]))
+            
         return re
         
     def process(self) -> FuzzySet:
         linguistic_after_rules = self._fit_rules()
         linguistic_output = self._shrink(linguistic_after_rules)
         self.output_ = FuzzySet(linguistic_output) 
+        print(self.output_.__str__())
         return self.output_
     
     def get_output(self):
         if self.output_: return self.output_
-        print("No output")
+        
 
 
 class DeFuzzifiCation:
@@ -117,9 +126,10 @@ class DeFuzzifiCation:
     def cog(self):
         sub_cog = 0
         total_region = 0
-        for lng in self.input_:
-            xi = lng.get_centroid()
-            Ai = lng.get_area()
+        for lng in self.input_.linguistic:
+            tmp_lng = lng.fit_shape()
+            xi = tmp_lng.get_centroid()
+            Ai = tmp_lng.get_area()
             sub_cog += xi * Ai
             total_region += Ai
         

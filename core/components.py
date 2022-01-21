@@ -1,4 +1,4 @@
-from membership_function import Shape, Trapzoid
+from .membership_function import Shape, Trapzoid
 
 
 class Variable:
@@ -21,7 +21,11 @@ class Variable:
 
     def get_linguistic(self, lngs):
         self.lng = lngs
+
         self.membership_function = dict(
+            zip(self.lng, [None for ele in self.lng]))
+
+        self.shape = self.shape = dict(
             zip(self.lng, [None for ele in self.lng]))
 
     def _define_membership_function(self, lng, func):
@@ -48,11 +52,13 @@ class Variable:
         e.g: 
             {"lng":shape}
         """
-        self.shape = self.shape = dict(
-            zip(self.lng, [None for ele in self.lng]))
-        
         for lng, shape in shape_mapper.items():
             self.shape[lng] = shape
+    
+    def __str__(self) -> str:
+        return '{}: {}'.format(self.name, self.lng)
+    
+
     
 
 class Domain:
@@ -67,6 +73,9 @@ class Domain:
     
     def get_fuzzy_value(self,lng):
         return self.var.shape[lng].get_fuzzy_value()
+    
+    def __str__(self) -> str:
+        return "{}: {} | var: {}".format(self.name, self.value, self.variable)
 
 
 class Linguistic(Domain):
@@ -79,8 +88,8 @@ class Linguistic(Domain):
         self.modified_shape = None
     
     def fit_shape(self) -> Shape:
-        self.modified_shape = self.variable.shape[self.name].fit_shape()
-        return self.modified_shape
+        self.modified_shape = self.variable.shape[self.name].fit_shape(self.value)
+        return self
 
     def get_area(self):
         if not self.modified_shape:
@@ -92,6 +101,9 @@ class Linguistic(Domain):
             raise Exception("Shape for linguistic is undefined")
         return self.modified_shape.get_centroid()
     
+    def __str__(self) -> str:
+        return "{}: {}".format(self.name, self.value)
+    
 class Entity:
     """
         An entity posesses a set of Domains
@@ -99,11 +111,17 @@ class Entity:
 
     def __init__(self, domains):
         self.domains = domains
+    
+    def __str__(self) -> str:
+        return "{}".format([ele.__str__() for ele in self.domains])
 
 
 class FuzzySet:
     def __init__(self, lngs):
         self.linguistic = lngs
+    
+    def __str__(self) -> str:
+        return "{}".format([ele.__str__() for ele in self.linguistic])
     
     
     

@@ -1,5 +1,6 @@
 def trapezoid(a, b, c, d):
     def func(x):
+        print(x,a,b,c,d)
         if x <= a:
             return 0
         elif x <= b:

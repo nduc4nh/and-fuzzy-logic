@@ -1,5 +1,4 @@
-from msilib.schema import Error
-from components import Linguistic
+from .components import Linguistic
 
 
 class Operation:
@@ -13,18 +12,18 @@ class Operation:
     
     @staticmethod
     def get_max_value(list_of_lngs):
-        return max(list_of_lngs, lambda x:x.value)
+        return max(list_of_lngs, key = lambda x:x.value)
 
     @staticmethod
     def get_min_value(list_of_lngs):
-        return min(list_of_lngs, lambda x:x.value)
+        return min(list_of_lngs, key = lambda x:x.value)
 
     @staticmethod
     def get_fuzzy_value(fuzzy_set, option = 'union'):
         if option == 'union':
-            return Operation.get_max_value(fuzzy_set.lngs)
+            return Operation.get_max_value(fuzzy_set.linguistic).value
         elif option == 'intersect':
-            return Operation.get_min_value(fuzzy_set.lngs)
+            return Operation.get_min_value(fuzzy_set.linguistic).value
             
     @staticmethod
     def union_many(list_of_lngs) -> list:
@@ -40,13 +39,14 @@ class Operation:
             raise Exception("Encounter more than 1 linguistics for union! | {}".format(names))
         if len(var_names) != 1:
             raise Exception("Encounter more than 1 types of variable for union! | {}".format(var_names))
-
+        
         re = Linguistic(
             names[0],
-            Operation.get_max_value(list_of_lngs),
+            Operation.get_max_value(list_of_lngs).value,
             list_of_lngs[0].variable
         )
 
         return re
+
         
     
